@@ -37,38 +37,6 @@ class User extends EventProvider implements ServiceManagerAwareInterface
      */
     protected $zfcUserOptions;
 
-
-    /**
-     * @param Form $form
-     * @param array $data
-     * @return UserInterface|null
-     */
-    public function create(Form $form, array $data)
-    {
-        $zfcUserOptions = $this->getZfcUserOptions();
-        $user = $form->getData();
-
-        $argv = array();
-        if ($this->getOptions()->getCreateUserAutoPassword()) {
-            $argv['password'] = Rand::getString(8);
-        } else {
-            $argv['password'] = $user->getPassword();
-        }
-        $bcrypt = new Bcrypt;
-        $bcrypt->setCost($zfcUserOptions->getPasswordCost());
-        $user->setPassword($bcrypt->create($argv['password']));
-
-        foreach ($this->getOptions()->getCreateFormElements() as $element) {
-            call_user_func(array($user, $this->getAccessorName($element)), $data[$element]);
-        }
-
-        $argv += array('user' => $user, 'form' => $form, 'data' => $data);
-        $this->getEventManager()->trigger(__FUNCTION__, $this, $argv);
-        $this->getUserMapper()->insert($user);
-        $this->getEventManager()->trigger(__FUNCTION__ . '.post', $this, $argv);
-        return $user;
-    }
-
     /**
      * @param Form $form
      * @param array $data

@@ -4,7 +4,8 @@ namespace ZfcUserAdmin\Controller;
 
 use Zend\Mvc\Controller\AbstractActionController;
 use Zend\Paginator;
-use Zend\Stdlib\Hydrator\ClassMethods;
+use \Zend\Http\PhpEnvironment\Response as Response;
+use ZfcUser\Service\User as UserService;
 use ZfcUser\Mapper\UserInterface;
 use ZfcUser\Options\ModuleOptions as ZfcUserModuleOptions;
 use ZfcUserAdmin\Options\ModuleOptions;
@@ -17,6 +18,11 @@ class UserAdminController extends AbstractActionController
      * @var \ZfcUserAdmin\Service\User
      */
     protected $adminUserService;
+    
+    /**
+     * @var UserService
+     */
+    protected $userService;
 
     public function listAction()
     {
@@ -38,31 +44,29 @@ class UserAdminController extends AbstractActionController
 
     public function createAction()
     {
-        /** @var $form \ZfcUserAdmin\Form\CreateUser */
-        $form = $this->getServiceLocator()->get('zfcuseradmin_createuser_form');
-        $request = $this->getRequest();
-
-        /** @var $request \Zend\Http\Request */
-        if ($request->isPost()) {
-            $zfcUserOptions = $this->getZfcUserOptions();
-            $class = $zfcUserOptions->getUserEntityClass();
-            $user = new $class();
-            $form->setHydrator(new ClassMethods());
-            $form->bind($user);
-            $form->setData($request->getPost());
-
-            if ($form->isValid()) {
-                $user = $this->getAdminUserService()->create($form, (array)$request->getPost());
-                if ($user) {
-                    $this->flashMessenger()->addSuccessMessage('The user was created');
-                    return $this->redirect()->toRoute('zfcadmin/zfcuseradmin/list');
-                }
-            }
+        $service    = $this->getUserService();
+        $form       = $service->getRegisterForm();
+        $prg        = $this->prg($this->getEvent()->getRouteMatch()->getMatchedRouteName());
+        
+        if ($prg instanceof Response) {
+            return $prg;
+        } elseif ($prg === false) {
+            return array(
+                'createUserForm' => $form
+            );
         }
 
-        return array(
-            'createUserForm' => $form
-        );
+        $user = $service->register($prg);
+
+        if (!$user) {
+            return array(
+                'createUserForm' => $form
+            );
+        }
+        
+        $this->flashMessenger()->addSuccessMessage('The user was created');
+
+        return $this->redirect()->toRoute("zfcadmin/zfcuseradmin/list");        
     }
 
     public function editAction()
@@ -171,5 +175,16 @@ class UserAdminController extends AbstractActionController
             $this->setZfcUserOptions($this->getServiceLocator()->get('zfcuser_module_options'));
         }
         return $this->zfcUserOptions;
+    }
+    
+    /**
+     * @return UserService
+     */
+    public function getUserService()
+    {
+        if (!$this->userService) {
+            $this->userService = $this->getServiceLocator()->get('zfcuser_user_service');
+        }
+        return $this->userService;
     }
 }

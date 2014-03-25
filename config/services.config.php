@@ -48,29 +48,6 @@ return array(
             $form->setInputFilter($filter);
             return $form;
         },
-        'zfcuseradmin_createuser_form' => function (ServiceLocatorInterface $sm) {
-            /** @var $zfcUserOptions \ZfcUser\Options\UserServiceOptionsInterface */
-            $zfcUserOptions = $sm->get('zfcuser_module_options');
-            /** @var $zfcUserAdminOptions \ZfcUserAdmin\Options\ModuleOptions */
-            $zfcUserAdminOptions = $sm->get('zfcuseradmin_module_options');
-            $form = new Form\CreateUser(null, $zfcUserAdminOptions, $zfcUserOptions, $sm);
-            $filter = new RegisterFilter(
-                new NoRecordExists(array(
-                    'mapper' => $sm->get('zfcuser_user_mapper'),
-                    'key' => 'email'
-                )),
-                new NoRecordExists(array(
-                    'mapper' => $sm->get('zfcuser_user_mapper'),
-                    'key' => 'username'
-                )),
-                $zfcUserOptions
-            );
-            if ($zfcUserAdminOptions->getCreateUserAutoPassword()) {
-                $filter->remove('password')->remove('passwordVerify');
-            }
-            $form->setInputFilter($filter);
-            return $form;
-        },
         'zfcuser_user_mapper' => function (ServiceLocatorInterface $sm) {
             /** @var $config \ZfcUserAdmin\Options\ModuleOptions */
             $config = $sm->get('zfcuseradmin_module_options');
